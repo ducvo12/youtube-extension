@@ -20,10 +20,74 @@
 }
 
 #hello-world-youtube-side-menu h2 {
-  margin: 0;
+  margin: 0 0 14px;
   font-size: 18px;
   font-weight: 700;
   line-height: 1.35;
+}
+
+#hello-world-youtube-side-menu .hello-world-youtube-result {
+  display: none;
+  margin: 0 0 12px;
+  padding: 12px;
+  border-radius: 10px;
+  background: #f2f2f2;
+  font-size: 14px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+}
+
+#hello-world-youtube-side-menu .hello-world-youtube-result[data-state="loading"],
+#hello-world-youtube-side-menu .hello-world-youtube-result[data-state="success"],
+#hello-world-youtube-side-menu .hello-world-youtube-result[data-state="error"] {
+  display: block;
+}
+
+#hello-world-youtube-side-menu .hello-world-youtube-result[data-state="error"] {
+  color: #b00020;
+  background: #fdecee;
+}
+
+#hello-world-youtube-side-menu .hello-world-youtube-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+#hello-world-youtube-side-menu .hello-world-youtube-form label {
+  color: #606060;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+#hello-world-youtube-side-menu textarea {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 84px;
+  padding: 10px;
+  border: 1px solid rgba(0, 0, 0, 0.18);
+  border-radius: 10px;
+  color: inherit;
+  background: #ffffff;
+  font: inherit;
+  resize: vertical;
+}
+
+#hello-world-youtube-side-menu button {
+  align-self: flex-start;
+  padding: 9px 14px;
+  border: 0;
+  border-radius: 999px;
+  color: #ffffff;
+  background: #0f0f0f;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+#hello-world-youtube-side-menu button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
 }
 
 html[dark] #hello-world-youtube-side-menu,
@@ -34,6 +98,31 @@ html[dark] #hello-world-youtube-side-menu,
 }
 
 html[dark] #hello-world-youtube-side-menu .hello-world-youtube-label,
-[dark] #hello-world-youtube-side-menu .hello-world-youtube-label {
+html[dark] #hello-world-youtube-side-menu .hello-world-youtube-form label,
+[dark] #hello-world-youtube-side-menu .hello-world-youtube-label,
+[dark] #hello-world-youtube-side-menu .hello-world-youtube-form label {
   color: #aaaaaa;
+}
+
+html[dark] #hello-world-youtube-side-menu .hello-world-youtube-result,
+[dark] #hello-world-youtube-side-menu .hello-world-youtube-result {
+  background: #303030;
+}
+
+html[dark] #hello-world-youtube-side-menu .hello-world-youtube-result[data-state="error"],
+[dark] #hello-world-youtube-side-menu .hello-world-youtube-result[data-state="error"] {
+  color: #ffb4ab;
+  background: #3f1518;
+}
+
+html[dark] #hello-world-youtube-side-menu textarea,
+[dark] #hello-world-youtube-side-menu textarea {
+  border-color: rgba(255, 255, 255, 0.22);
+  background: #181818;
+}
+
+html[dark] #hello-world-youtube-side-menu button,
+[dark] #hello-world-youtube-side-menu button {
+  color: #0f0f0f;
+  background: #f1f1f1;
 }

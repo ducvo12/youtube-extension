@@ -7,6 +7,10 @@
     "default_popup": "popup.html",
     "default_title": "Hello World"
   },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "host_permissions": ["http://localhost:8000/*"],
   "content_scripts": [
     {
       "matches": ["https://www.youtube.com/*"],
