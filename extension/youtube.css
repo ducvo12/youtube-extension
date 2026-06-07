@@ -1,0 +1,39 @@
+#hello-world-youtube-side-menu {
+  box-sizing: border-box;
+  margin: 0 0 16px;
+  padding: 16px;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 12px;
+  color: #0f0f0f;
+  background: #ffffff;
+  font-family: Roboto, Arial, sans-serif;
+}
+
+#hello-world-youtube-side-menu .hello-world-youtube-label {
+  margin: 0 0 8px;
+  color: #606060;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  line-height: 1.3;
+  text-transform: uppercase;
+}
+
+#hello-world-youtube-side-menu h2 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+html[dark] #hello-world-youtube-side-menu,
+[dark] #hello-world-youtube-side-menu {
+  border-color: rgba(255, 255, 255, 0.18);
+  color: #f1f1f1;
+  background: #212121;
+}
+
+html[dark] #hello-world-youtube-side-menu .hello-world-youtube-label,
+[dark] #hello-world-youtube-side-menu .hello-world-youtube-label {
+  color: #aaaaaa;
+}
