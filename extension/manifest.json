@@ -1,0 +1,10 @@
+{
+  "manifest_version": 3,
+  "name": "Hello World Extension",
+  "version": "1.0.0",
+  "description": "A basic Chrome extension that displays hello world.",
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Hello World"
+  }
+}
