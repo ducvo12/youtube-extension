@@ -8,6 +8,7 @@ let loggedPlayerScriptIndexes = new Set();
 let lastLoadDebugKey = "";
 let cachedCaptionRequestHints = null;
 let captionRetryTimeout = null;
+let lastSeenVideoId = getVideoId();
 
 // Shared caption state for the currently loaded YouTube watch page.
 let captionState = {
@@ -58,6 +59,35 @@ function getVideoTitle() {
 // Read the video ID from the URL so caption state can reset on YouTube SPA navigation.
 function getVideoId() {
   return new URLSearchParams(location.search).get("v");
+}
+
+function scheduleDelayedUpdates() {
+  scheduleUpdate();
+  window.setTimeout(scheduleUpdate, 500);
+  window.setTimeout(scheduleUpdate, 1500);
+}
+
+function handlePossibleVideoNavigation() {
+  const currentVideoId = getVideoId();
+  if (currentVideoId === lastSeenVideoId) {
+    scheduleUpdate();
+    return;
+  }
+
+  lastSeenVideoId = currentVideoId;
+  resetCaptions();
+  scheduleDelayedUpdates();
+}
+
+function patchHistoryNavigation() {
+  for (const methodName of ["pushState", "replaceState"]) {
+    const originalMethod = history[methodName];
+    history[methodName] = function patchedHistoryMethod(...args) {
+      const result = originalMethod.apply(this, args);
+      window.setTimeout(handlePossibleVideoNavigation, 0);
+      return result;
+    };
+  }
 }
 
 // Remove the custom side menu if it exists.
@@ -384,6 +414,24 @@ function areYouTubeCaptionsEnabled(button) {
   return button?.getAttribute("aria-pressed") === "true";
 }
 
+function isCaptionButtonReady(button) {
+  return Boolean(button && !button.disabled && button.getAttribute("aria-disabled") !== "true");
+}
+
+function isPlayerReadyForCaptions() {
+  const video = document.querySelector("video");
+  const moviePlayer = document.querySelector("#movie_player");
+
+  return Boolean(
+    video &&
+    moviePlayer &&
+    video.currentSrc &&
+    video.readyState >= HTMLMediaElement.HAVE_METADATA &&
+    !moviePlayer.classList.contains("unstarted-mode") &&
+    !isAdPlaying()
+  );
+}
+
 function waitForObservedTimedTextUrl(videoId, timeoutMs = 10000) {
   return new Promise((resolve) => {
     const startedAt = Date.now();
@@ -427,6 +475,8 @@ function showPlayerControls() {
 function clickCaptionButton(button) {
   showPlayerControls();
 
+  button.focus();
+
   for (const eventName of ["pointerdown", "mousedown", "pointerup", "mouseup", "click"]) {
     button.dispatchEvent(new MouseEvent(eventName, {
       bubbles: true,
@@ -434,6 +484,8 @@ function clickCaptionButton(button) {
       view: window
     }));
   }
+
+  button.click();
 }
 
 async function waitForCaptionToggleButton(timeoutMs = 5000) {
@@ -443,7 +495,7 @@ async function waitForCaptionToggleButton(timeoutMs = 5000) {
     showPlayerControls();
 
     const button = getCaptionToggleButton();
-    if (button) {
+    if (isCaptionButtonReady(button)) {
       return button;
     }
 
@@ -453,11 +505,52 @@ async function waitForCaptionToggleButton(timeoutMs = 5000) {
   return null;
 }
 
+async function waitForPlayerReadyForCaptions(timeoutMs = 10000) {
+  const startedAt = Date.now();
+
+  while (Date.now() - startedAt < timeoutMs) {
+    if (isPlayerReadyForCaptions()) {
+      return true;
+    }
+
+    await wait(200);
+  }
+
+  return false;
+}
+
+async function enableYouTubeCaptions(button) {
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    if (areYouTubeCaptionsEnabled(button)) {
+      return true;
+    }
+
+    clickCaptionButton(button);
+    await wait(350);
+  }
+
+  return areYouTubeCaptionsEnabled(button);
+}
+
+async function refreshEnabledYouTubeCaptions(button) {
+  if (areYouTubeCaptionsEnabled(button)) {
+    clickCaptionButton(button);
+    await wait(250);
+  }
+
+  return enableYouTubeCaptions(button);
+}
+
 async function observeYouTubeCaptionRequest(menu) {
   const videoId = getVideoId();
   const existingObservedUrl = videoId ? getObservedTimedTextUrl(videoId) : null;
   if (!videoId || existingObservedUrl) {
     return existingObservedUrl;
+  }
+
+  if (!(await waitForPlayerReadyForCaptions())) {
+    setCaptionStatus(menu, "Waiting for the YouTube player before loading captions...");
+    return null;
   }
 
   const captionButton = await waitForCaptionToggleButton();
@@ -470,10 +563,16 @@ async function observeYouTubeCaptionRequest(menu) {
   setCaptionStatus(menu, "Caption stage: asking YouTube to generate its caption request...");
 
   if (!captionsWereEnabled) {
-    clickCaptionButton(captionButton);
+    await enableYouTubeCaptions(captionButton);
   }
 
-  const observedUrl = await waitForObservedTimedTextUrl(videoId);
+  let observedUrl = await waitForObservedTimedTextUrl(videoId, captionsWereEnabled ? 2500 : 10000);
+
+  if (!observedUrl && areYouTubeCaptionsEnabled(captionButton)) {
+    setCaptionStatus(menu, "Caption stage: refreshing YouTube captions...");
+    await refreshEnabledYouTubeCaptions(captionButton);
+    observedUrl = await waitForObservedTimedTextUrl(videoId, 10000);
+  }
 
   if (observedUrl) {
     setCaptionStatus(menu, "Caption stage: captured YouTube's caption request.");
@@ -867,9 +966,8 @@ async function loadCaptionsForCurrentVideo(menu) {
     const track = chooseCaptionTrack(tracks);
 
     if (!track) {
-      // Some videos truly have no caption tracks, even if the user could enable subtitles on others.
-      captionState.videoId = videoId;
-      setCaptionStatus(menu, "No caption track is available for this video.");
+      setCaptionStatus(menu, "Waiting for YouTube caption tracks...");
+      scheduleCaptionRetry(menu);
       return;
     }
 
@@ -1012,9 +1110,15 @@ function scheduleUpdate() {
 }
 
 // Re-run the update after navigation and fullscreen changes.
-document.addEventListener("yt-navigate-finish", scheduleUpdate);
-document.addEventListener("yt-navigate-start", resetCaptions);
+patchHistoryNavigation();
+document.addEventListener("yt-navigate-start", handlePossibleVideoNavigation);
+document.addEventListener("yt-navigate-finish", handlePossibleVideoNavigation);
+document.addEventListener("yt-page-data-updated", handlePossibleVideoNavigation);
+window.addEventListener("popstate", handlePossibleVideoNavigation);
 document.addEventListener("fullscreenchange", scheduleUpdate);
+
+// YouTube sometimes updates watch pages without consistently firing public SPA events.
+window.setInterval(handlePossibleVideoNavigation, 1000);
 
 // Observe DOM changes that could affect YouTube page layout, especially theater mode.
 new MutationObserver(scheduleUpdate).observe(document.documentElement, {
