@@ -2,6 +2,7 @@ const MENU_ID = "hello-world-youtube-side-menu";
 const RESULT_CLASS = "hello-world-youtube-result";
 const CAPTION_TEXT_CLASS = "hello-world-youtube-caption-text";
 const CAPTION_STATUS_CLASS = "hello-world-youtube-caption-status";
+const CAPTION_SYNC_OFFSET_SECONDS = 2;
 const DEBUG_CAPTIONS = false;
 
 let loggedPlayerScriptIndexes = new Set();
@@ -872,7 +873,9 @@ async function fetchCaptionTrack(track) {
 }
 
 function findCurrentCaptionIndex(currentTime) {
-  return captionState.captions.findIndex((caption) => currentTime >= caption.start && currentTime < caption.end);
+  // Auto-generated YouTube caption timestamps often trail the spoken audio slightly.
+  const adjustedTime = currentTime + CAPTION_SYNC_OFFSET_SECONDS;
+  return captionState.captions.findIndex((caption) => adjustedTime >= caption.start && adjustedTime < caption.end);
 }
 
 // Caption playback syncing.
