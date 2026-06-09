@@ -38,11 +38,38 @@
 }
 
 #hello-world-youtube-side-menu .hello-world-youtube-caption-text {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
   min-height: 40px;
   margin: 0 0 8px;
-  font-size: 16px;
-  font-weight: 600;
   line-height: 1.4;
+}
+
+#hello-world-youtube-side-menu .hello-world-youtube-caption-line {
+  display: block;
+  color: #606060;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.35;
+  opacity: 0.55;
+}
+
+#hello-world-youtube-side-menu .hello-world-youtube-caption-line[data-age="2"] {
+  opacity: 0.7;
+}
+
+#hello-world-youtube-side-menu .hello-world-youtube-caption-line[data-age="1"] {
+  color: #3f3f3f;
+  font-size: 14px;
+  opacity: 0.85;
+}
+
+#hello-world-youtube-side-menu .hello-world-youtube-caption-line[data-current="true"] {
+  color: #0f0f0f;
+  font-size: 16px;
+  font-weight: 700;
+  opacity: 1;
 }
 
 #hello-world-youtube-side-menu .hello-world-youtube-caption-status {
@@ -50,6 +77,10 @@
   color: #606060;
   font-size: 12px;
   line-height: 1.35;
+}
+
+#hello-world-youtube-side-menu .hello-world-youtube-caption-action {
+  margin-top: 10px;
 }
 
 #hello-world-youtube-side-menu .hello-world-youtube-result {
@@ -143,6 +174,21 @@ html[dark] #hello-world-youtube-side-menu .hello-world-youtube-captions,
 html[dark] #hello-world-youtube-side-menu .hello-world-youtube-caption-status,
 [dark] #hello-world-youtube-side-menu .hello-world-youtube-caption-status {
   color: #aaaaaa;
+}
+
+html[dark] #hello-world-youtube-side-menu .hello-world-youtube-caption-line,
+[dark] #hello-world-youtube-side-menu .hello-world-youtube-caption-line {
+  color: #aaaaaa;
+}
+
+html[dark] #hello-world-youtube-side-menu .hello-world-youtube-caption-line[data-age="1"],
+[dark] #hello-world-youtube-side-menu .hello-world-youtube-caption-line[data-age="1"] {
+  color: #d0d0d0;
+}
+
+html[dark] #hello-world-youtube-side-menu .hello-world-youtube-caption-line[data-current="true"],
+[dark] #hello-world-youtube-side-menu .hello-world-youtube-caption-line[data-current="true"] {
+  color: #f1f1f1;
 }
 
 html[dark] #hello-world-youtube-side-menu .hello-world-youtube-result[data-state="error"],

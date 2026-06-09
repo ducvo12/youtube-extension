@@ -2,7 +2,9 @@ const MENU_ID = "hello-world-youtube-side-menu";
 const RESULT_CLASS = "hello-world-youtube-result";
 const CAPTION_TEXT_CLASS = "hello-world-youtube-caption-text";
 const CAPTION_STATUS_CLASS = "hello-world-youtube-caption-status";
+const CAPTION_ACTION_CLASS = "hello-world-youtube-caption-action";
 const CAPTION_SYNC_OFFSET_SECONDS = 2;
+const CAPTION_HISTORY_LINE_COUNT = 4;
 const DEBUG_CAPTIONS = false;
 
 let loggedPlayerScriptIndexes = new Set();
@@ -10,6 +12,7 @@ let lastLoadDebugKey = "";
 let cachedCaptionRequestHints = null;
 let captionRetryTimeout = null;
 let lastSeenVideoId = getVideoId();
+let captionAccessApproved = false;
 
 // Shared caption state for the currently loaded YouTube watch page.
 let captionState = {
@@ -138,6 +141,41 @@ function setCaptionText(menu, message) {
   const captionText = menu?.querySelector(`.${CAPTION_TEXT_CLASS}`);
   if (captionText) {
     captionText.textContent = message;
+  }
+}
+
+function setCaptionActionVisible(menu, isVisible) {
+  const action = menu?.querySelector(`.${CAPTION_ACTION_CLASS}`);
+  if (action) {
+    action.hidden = !isVisible;
+  }
+}
+
+function setCaptionLines(menu, captions, activeIndex) {
+  const captionText = menu?.querySelector(`.${CAPTION_TEXT_CLASS}`);
+  if (!captionText) {
+    return;
+  }
+
+  captionText.replaceChildren();
+
+  if (activeIndex === -1) {
+    setCaptionText(menu, "No caption at the current timestamp.");
+    return;
+  }
+
+  const startIndex = Math.max(0, activeIndex - CAPTION_HISTORY_LINE_COUNT + 1);
+  const visibleCaptions = captions.slice(startIndex, activeIndex + 1);
+
+  for (const [index, caption] of visibleCaptions.entries()) {
+    const line = document.createElement("span");
+    const distanceFromCurrent = visibleCaptions.length - index - 1;
+
+    line.className = "hello-world-youtube-caption-line";
+    line.dataset.current = distanceFromCurrent === 0 ? "true" : "false";
+    line.dataset.age = String(distanceFromCurrent);
+    line.textContent = caption.text;
+    captionText.append(line);
   }
 }
 
@@ -407,6 +445,20 @@ function getObservedTimedTextUrl(videoId) {
   return getTimedTextResourceHints(videoId).find((entry) => entry.url.searchParams.has("pot"))?.url || null;
 }
 
+function createTrackFromObservedTimedTextUrl(url) {
+  return {
+    baseUrl: url.toString(),
+    name: {
+      simpleText: url.searchParams.get("lang") || "observed YouTube captions"
+    },
+    languageCode: url.searchParams.get("lang") || "",
+    kind: url.searchParams.get("kind") || "",
+    vssId: "",
+    isTranslatable: false,
+    trackName: ""
+  };
+}
+
 function getCaptionToggleButton() {
   return document.querySelector("button.ytp-subtitles-button") || document.querySelector(".ytp-subtitles-button") || document.querySelector("button[aria-keyshortcuts='c']");
 }
@@ -542,7 +594,7 @@ async function refreshEnabledYouTubeCaptions(button) {
   return enableYouTubeCaptions(button);
 }
 
-async function observeYouTubeCaptionRequest(menu) {
+async function observeYouTubeCaptionRequest(menu, { userInitiated = false } = {}) {
   const videoId = getVideoId();
   const existingObservedUrl = videoId ? getObservedTimedTextUrl(videoId) : null;
   if (!videoId || existingObservedUrl) {
@@ -563,13 +615,13 @@ async function observeYouTubeCaptionRequest(menu) {
   const captionsWereEnabled = areYouTubeCaptionsEnabled(captionButton);
   setCaptionStatus(menu, "Caption stage: asking YouTube to generate its caption request...");
 
-  if (!captionsWereEnabled) {
+  if (userInitiated && !captionsWereEnabled) {
     await enableYouTubeCaptions(captionButton);
   }
 
   let observedUrl = await waitForObservedTimedTextUrl(videoId, captionsWereEnabled ? 2500 : 10000);
 
-  if (!observedUrl && areYouTubeCaptionsEnabled(captionButton)) {
+  if (userInitiated && !observedUrl && areYouTubeCaptionsEnabled(captionButton)) {
     setCaptionStatus(menu, "Caption stage: refreshing YouTube captions...");
     await refreshEnabledYouTubeCaptions(captionButton);
     observedUrl = await waitForObservedTimedTextUrl(videoId, 10000);
@@ -580,6 +632,29 @@ async function observeYouTubeCaptionRequest(menu) {
   }
 
   return observedUrl;
+}
+
+async function handleCaptionAccessClick(event) {
+  const action = event.currentTarget;
+  const menu = action.closest(`#${MENU_ID}`);
+
+  action.disabled = true;
+  captionAccessApproved = true;
+  setCaptionActionVisible(menu, false);
+  setCaptionStatus(menu, "Requesting caption access from YouTube for this session...");
+
+  const observedUrl = await observeYouTubeCaptionRequest(menu, { userInitiated: true });
+  if (!observedUrl) {
+    setCaptionStatus(menu, "YouTube did not expose captions yet. The extension will retry while this video plays.");
+    setCaptionActionVisible(menu, true);
+    action.disabled = false;
+    scheduleCaptionRetry(menu);
+    return;
+  }
+
+  resetCaptions();
+  action.disabled = false;
+  loadCaptionsForCurrentVideo(menu);
 }
 
 function getCaptionRequestHints(track) {
@@ -746,6 +821,47 @@ function parseVttCaptionEvents(rawCaptionData) {
   return captions;
 }
 
+function getVisibleTranscriptCaptions() {
+  const segments = Array.from(document.querySelectorAll("ytd-transcript-segment-renderer"));
+  const captions = segments
+    .map((segment) => {
+      const timestamp = segment.querySelector(".segment-timestamp")?.textContent?.trim();
+      const text = segment.querySelector(".segment-text")?.textContent?.trim();
+      const start = timestamp ? parseTimeToSeconds(timestamp) : null;
+
+      if (!text || start === null) {
+        return null;
+      }
+
+      return {
+        start,
+        end: start + 4,
+        text: normalizeCaptionText(text)
+      };
+    })
+    .filter(Boolean);
+
+  return captions.map((caption, index) => ({
+    ...caption,
+    end: captions[index + 1]?.start || caption.end
+  }));
+}
+
+function useLoadedCaptions(menu, videoId, captions, statusMessage) {
+  captionState.videoId = videoId;
+  captionState.captions = captions;
+  captionState.video = document.querySelector("video");
+  captionAccessApproved = true;
+
+  if (!captions.length) {
+    setCaptionStatus(menu, "Caption track loaded, but it has no readable text.");
+    return;
+  }
+
+  setCaptionStatus(menu, statusMessage);
+  bindCaptionVideo(menu);
+}
+
 function buildCaptionUrls(track) {
   const baseUrl = new URL(track.baseUrl);
   const requestHints = getCaptionRequestHints(track);
@@ -887,6 +1003,11 @@ function updateCurrentCaption() {
     return;
   }
 
+  if (isAdPlaying()) {
+    setCaptionStatus(menu, "Ad playing. Captions will resume when the video starts.");
+    return;
+  }
+
   const activeIndex = findCurrentCaptionIndex(video.currentTime);
   // Avoid rewriting the same caption on every timeupdate event.
   if (activeIndex === captionState.activeIndex) {
@@ -894,7 +1015,7 @@ function updateCurrentCaption() {
   }
 
   captionState.activeIndex = activeIndex;
-  setCaptionText(menu, activeIndex === -1 ? "No caption at the current timestamp." : captionState.captions[activeIndex].text);
+  setCaptionLines(menu, captionState.captions, activeIndex);
 }
 
 function bindCaptionVideo(menu) {
@@ -954,12 +1075,55 @@ async function loadCaptionsForCurrentVideo(menu) {
   captionState.loadingVideoId = videoId;
   setCaptionStatus(menu, "Caption stage: reading YouTube player metadata...");
   setCaptionText(menu, "");
+  setCaptionActionVisible(menu, false);
 
   try {
+    const visibleTranscriptCaptions = getVisibleTranscriptCaptions();
+    if (visibleTranscriptCaptions.length) {
+      useLoadedCaptions(menu, videoId, visibleTranscriptCaptions, "Showing captions from YouTube's visible transcript panel.");
+      return;
+    }
+
+    if (isAdPlaying()) {
+      setCaptionStatus(menu, "Waiting for the ad to finish before loading captions...");
+      scheduleCaptionRetry(menu);
+      return;
+    }
+
+    const observedTimedTextUrl = getObservedTimedTextUrl(videoId);
+    if (observedTimedTextUrl) {
+      setCaptionStatus(menu, "Caption stage: using YouTube's observed caption request...");
+      const captions = await fetchCaptionTrack(createTrackFromObservedTimedTextUrl(observedTimedTextUrl));
+      useLoadedCaptions(menu, videoId, captions, "Showing captions from YouTube's caption request.");
+      return;
+    }
+
     const playerResponse = getPlayerResponse();
     if (!playerResponse) {
-      // The mutation observer will call this function again as YouTube finishes rendering.
-      setCaptionStatus(menu, "Waiting for YouTube caption metadata...");
+      if (captionAccessApproved) {
+        const observedCaptionRequest = await observeYouTubeCaptionRequest(menu, { userInitiated: true });
+        const observedUrl = observedCaptionRequest || getObservedTimedTextUrl(videoId);
+
+        if (observedUrl) {
+          setCaptionStatus(menu, "Caption stage: using YouTube's observed caption request...");
+          const captions = await fetchCaptionTrack(createTrackFromObservedTimedTextUrl(observedUrl));
+          useLoadedCaptions(menu, videoId, captions, "Showing captions from YouTube's caption request.");
+          return;
+        }
+
+        setCaptionStatus(menu, "Waiting for YouTube to make its caption request. Retrying shortly...");
+        scheduleCaptionRetry(menu);
+        return;
+      }
+
+      if (isPlayerReadyForCaptions()) {
+        setCaptionStatus(menu, "Click Enable caption access to let YouTube load captions for this session.");
+        setCaptionActionVisible(menu, true);
+        return;
+      }
+
+      setCaptionStatus(menu, "Waiting for YouTube to finish loading video metadata...");
+      scheduleCaptionRetry(menu);
       return;
     }
 
@@ -969,33 +1133,45 @@ async function loadCaptionsForCurrentVideo(menu) {
     const track = chooseCaptionTrack(tracks);
 
     if (!track) {
+      if (captionAccessApproved) {
+        const observedCaptionRequest = await observeYouTubeCaptionRequest(menu, { userInitiated: true });
+        const observedUrl = observedCaptionRequest || getObservedTimedTextUrl(videoId);
+
+        if (observedUrl) {
+          setCaptionStatus(menu, "Caption stage: using YouTube's observed caption request...");
+          const captions = await fetchCaptionTrack(createTrackFromObservedTimedTextUrl(observedUrl));
+          useLoadedCaptions(menu, videoId, captions, "Showing captions from YouTube's caption request.");
+          return;
+        }
+      }
+
       setCaptionStatus(menu, "Waiting for YouTube caption tracks...");
       scheduleCaptionRetry(menu);
       return;
     }
 
-    const observedCaptionRequest = await observeYouTubeCaptionRequest(menu);
-    if (!observedCaptionRequest && !getObservedTimedTextUrl(videoId)) {
-      setCaptionStatus(menu, "Waiting for YouTube to make its caption request. Retrying shortly...");
-      scheduleCaptionRetry(menu);
-      return;
+    const hasObservedCaptionRequest = Boolean(getObservedTimedTextUrl(videoId));
+    const hasExtractedToken = extractPoTokensFromScripts().length > 0;
+    if (!hasObservedCaptionRequest && !hasExtractedToken) {
+      if (!captionAccessApproved) {
+        setCaptionStatus(menu, "Click Enable caption access to let YouTube load captions for this session.");
+        setCaptionActionVisible(menu, true);
+        return;
+      }
+
+      setCaptionStatus(menu, "Loading captions for this video...");
+      const observedCaptionRequest = await observeYouTubeCaptionRequest(menu, { userInitiated: true });
+      if (!observedCaptionRequest && !getObservedTimedTextUrl(videoId)) {
+        setCaptionStatus(menu, "Waiting for YouTube to make its caption request. Retrying shortly...");
+        scheduleCaptionRetry(menu);
+        return;
+      }
     }
 
     setCaptionStatus(menu, `Caption stage: fetching ${getCaptionTrackLabel(track)} captions...`);
     const captions = await fetchCaptionTrack(track);
     setCaptionStatus(menu, `Caption stage: parsing ${getCaptionTrackLabel(track)} captions...`);
-    captionState.videoId = videoId;
-    captionState.captions = captions;
-    captionState.video = document.querySelector("video");
-
-    if (!captions.length) {
-      setCaptionStatus(menu, "Caption track loaded, but it has no readable text.");
-      return;
-    }
-
-    setCaptionStatus(menu, `Caption stage: syncing ${getCaptionTrackLabel(track)} captions to playback...`);
-    bindCaptionVideo(menu);
-    setCaptionStatus(menu, `Showing ${getCaptionTrackLabel(track)} captions.`);
+    useLoadedCaptions(menu, videoId, captions, `Showing ${getCaptionTrackLabel(track)} captions.`);
   } catch (error) {
     if (isAdPlaying()) {
       setCaptionStatus(menu, "Caption retrieval paused while an ad is playing. Retrying shortly...");
@@ -1067,6 +1243,7 @@ function createSideMenu() {
       <p class="hello-world-youtube-label">Current caption</p>
       <p class="${CAPTION_TEXT_CLASS}"></p>
       <p class="${CAPTION_STATUS_CLASS}">Looking for captions...</p>
+      <button class="${CAPTION_ACTION_CLASS}" type="button" hidden>Enable caption access</button>
     </section>
     <div class="${RESULT_CLASS}" aria-live="polite"></div>
     <form class="hello-world-youtube-form">
@@ -1075,6 +1252,7 @@ function createSideMenu() {
       <button type="submit">Submit</button>
     </form>
   `;
+  menu.querySelector(`.${CAPTION_ACTION_CLASS}`).addEventListener("click", handleCaptionAccessClick);
   menu.querySelector("form").addEventListener("submit", handlePromptSubmit);
   return menu;
 }
