@@ -7,6 +7,22 @@ const CAPTION_SYNC_OFFSET_SECONDS = 2;
 const CAPTION_HISTORY_LINE_COUNT = 4;
 const DEBUG_CAPTIONS = false;
 
+type BackendResult = {
+  response?: string;
+  error?: string;
+  details?: unknown;
+  [key: string]: unknown;
+};
+
+type NavigatorWithUserAgentData = Navigator & {
+  userAgentData?: {
+    brands?: Array<{
+      brand: string;
+      version: string;
+    }>;
+  };
+};
+
 let loggedPlayerScriptIndexes = new Set();
 let lastLoadDebugKey = "";
 let cachedCaptionRequestHints = null;
@@ -23,7 +39,7 @@ let captionState = {
   video: null
 };
 
-function debugLog(message, data) {
+function debugLog(message: string, data?: unknown) {
   if (!DEBUG_CAPTIONS) {
     return;
   }
@@ -102,7 +118,7 @@ function removeSideMenu() {
 // Backend prompt handling.
 
 // Send a prompt through the extension service worker so the page does not need CORS access.
-function processPrompt(prompt) {
+function processPrompt(prompt: string): Promise<BackendResult> {
   return new Promise((resolve, reject) => {
     chrome.runtime.sendMessage({ type: "PROCESS_PROMPT", prompt }, (response) => {
       // Chrome reports messaging failures through chrome.runtime.lastError instead of throwing.
@@ -342,12 +358,14 @@ function getCaptionTrackLabel(track) {
 }
 
 function getBrowserBrand() {
-  return navigator.userAgentData?.brands?.find((brand) => brand.brand !== "Not A(Brand")?.brand || "Chrome";
+  const userAgentData = (navigator as NavigatorWithUserAgentData).userAgentData;
+  return userAgentData?.brands?.find((brand) => brand.brand !== "Not A(Brand")?.brand || "Chrome";
 }
 
 function getBrowserVersion() {
   const userAgentVersion = navigator.userAgent.match(/(?:Chrome|CriOS)\/(\d+\.\d+\.\d+\.\d+)/);
-  return userAgentVersion?.[1] || navigator.userAgentData?.brands?.[0]?.version || "";
+  const userAgentData = (navigator as NavigatorWithUserAgentData).userAgentData;
+  return userAgentVersion?.[1] || userAgentData?.brands?.[0]?.version || "";
 }
 
 function getOperatingSystem() {
@@ -404,7 +422,7 @@ function getDefaultCaptionClientParams() {
 }
 
 function extractPoTokensFromScripts() {
-  const tokens = new Set();
+  const tokens = new Set<string>();
   const patterns = [
     /"poToken"\s*:\s*"([^"]+)"/g,
     /"pot"\s*:\s*"([^"]+)"/g,
@@ -1189,7 +1207,7 @@ async function loadCaptionsForCurrentVideo(menu) {
 
 // Prompt form behavior.
 
-function formatBackendResult(data) {
+function formatBackendResult(data: BackendResult) {
   if (data?.response) {
     return data.response;
   }
