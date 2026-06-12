@@ -46,6 +46,10 @@
   line-height: 1.4;
 }
 
+#hello-world-youtube-side-menu .hello-world-youtube-caption-text[data-mode="word"] {
+  min-height: 82px;
+}
+
 #hello-world-youtube-side-menu .hello-world-youtube-caption-line {
   display: block;
   color: #606060;
@@ -53,6 +57,7 @@
   font-weight: 500;
   line-height: 1.35;
   opacity: 0.55;
+  overflow-wrap: anywhere;
 }
 
 #hello-world-youtube-side-menu .hello-world-youtube-caption-line[data-age="2"] {
@@ -65,7 +70,7 @@
   opacity: 0.85;
 }
 
-#hello-world-youtube-side-menu .hello-world-youtube-caption-line[data-current="true"] {
+#hello-world-youtube-side-menu .hello-world-youtube-caption-line[data-bottom="true"] {
   color: #0f0f0f;
   font-size: 16px;
   font-weight: 700;
@@ -186,8 +191,8 @@ html[dark] #hello-world-youtube-side-menu .hello-world-youtube-caption-line[data
   color: #d0d0d0;
 }
 
-html[dark] #hello-world-youtube-side-menu .hello-world-youtube-caption-line[data-current="true"],
-[dark] #hello-world-youtube-side-menu .hello-world-youtube-caption-line[data-current="true"] {
+html[dark] #hello-world-youtube-side-menu .hello-world-youtube-caption-line[data-bottom="true"],
+[dark] #hello-world-youtube-side-menu .hello-world-youtube-caption-line[data-bottom="true"] {
   color: #f1f1f1;
 }
 
