@@ -33,12 +33,11 @@ export function setCaptionLines(menu, captions, activeIndex) {
     return;
   }
 
-  captionText.replaceChildren();
-
   if (activeIndex === -1) {
-    setCaptionText(menu, "No caption at the current timestamp.");
     return;
   }
+
+  captionText.replaceChildren();
 
   const startIndex = Math.max(0, activeIndex - CAPTION_HISTORY_LINE_COUNT + 1);
   const visibleCaptions = captions.slice(startIndex, activeIndex + 1);
