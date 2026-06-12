@@ -5,5 +5,5 @@ export const CAPTION_STATUS_CLASS = "hello-world-youtube-caption-status";
 export const CAPTION_ACTION_CLASS = "hello-world-youtube-caption-action";
 export const CAPTION_HISTORY_LINE_COUNT = 4;
 export const WORD_CAPTION_HISTORY_LINE_COUNT = 4;
-export const WORD_CAPTION_LINE_CHARACTER_COUNT = 34;
+export const WORD_CAPTION_LINE_CHARACTER_COUNT = 52;
 export const DEBUG_CAPTIONS = false;

@@ -101,11 +101,17 @@ function getRenderedCaptionText() {
   }
 
   const segments = Array.from(container.querySelectorAll(".ytp-caption-segment"));
-  if (segments.length) {
-    return normalizeCaptionText(segments.map((segment) => segment.textContent || "").join(" "));
-  }
+  return normalizeCaptionText(segments.map((segment) => segment.textContent || "").join(" "));
+}
 
-  return normalizeCaptionText(container.textContent || "");
+function isYouTubeCaptionControlText(text: string) {
+  const normalizedText = text.toLowerCase();
+
+  return (
+    normalizedText.includes("click for settings") ||
+    normalizedText.includes("auto-generated") ||
+    normalizedText.includes("subtitles/closed captions")
+  );
 }
 
 function getNewRenderedWords(previousText: string, nextText: string) {
@@ -134,7 +140,7 @@ function getNewRenderedWords(previousText: string, nextText: string) {
 
 function appendRenderedWords(menu: Element) {
   const nextText = getRenderedCaptionText();
-  if (!nextText) {
+  if (!nextText || isYouTubeCaptionControlText(nextText)) {
     renderedCaptionText = "";
     return;
   }
