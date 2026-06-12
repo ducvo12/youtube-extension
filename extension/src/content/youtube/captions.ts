@@ -21,6 +21,9 @@ import type { CaptionState } from "./types";
 let lastLoadDebugKey = "";
 let captionRetryTimeout = null;
 let captionAccessApproved = false;
+let captionSyncPausedForAd = false;
+let loadedCaptionStatusMessage = "";
+const AD_PLAYING_CAPTION_STATUS = "Ad playing. Captions will resume when the video starts.";
 
 // Shared caption state for the currently loaded YouTube watch page.
 let captionState: CaptionState = {
@@ -49,6 +52,8 @@ export function resetCaptions() {
     video: null,
   };
   lastLoadDebugKey = "";
+  captionSyncPausedForAd = false;
+  loadedCaptionStatusMessage = "";
   resetCaptionHints();
 }
 
@@ -396,6 +401,7 @@ function useLoadedCaptions(menu, videoId, captions, statusMessage) {
     return;
   }
 
+  loadedCaptionStatusMessage = statusMessage;
   setCaptionStatus(menu, statusMessage);
   bindCaptionVideo(menu);
 }
@@ -415,8 +421,14 @@ function updateCurrentCaption() {
   }
 
   if (isAdPlaying()) {
-    setCaptionStatus(menu, "Ad playing. Captions will resume when the video starts.");
+    captionSyncPausedForAd = true;
+    setCaptionStatus(menu, AD_PLAYING_CAPTION_STATUS);
     return;
+  }
+
+  if (captionSyncPausedForAd) {
+    captionSyncPausedForAd = false;
+    setCaptionStatus(menu, loadedCaptionStatusMessage);
   }
 
   const activeIndex = findCurrentCaptionIndex(video.currentTime);
