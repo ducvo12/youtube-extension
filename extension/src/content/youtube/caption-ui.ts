@@ -3,6 +3,8 @@ import {
   CAPTION_TEXT_CLASS,
   RESULT_CLASS,
   CAPTION_ACTION_CLASS,
+  SELECTED_CAPTION_CLASS,
+  SELECTED_CAPTION_TEXT_CLASS,
 } from "./constants";
 
 export function setResult(menu, message, state = "") {
@@ -30,6 +32,62 @@ export function setCaptionActionVisible(menu, isVisible) {
   if (action) {
     action.hidden = !isVisible;
   }
+}
+
+function getSelectionTextInside(captionText: Element) {
+  const selection = window.getSelection();
+  if (!selection || selection.isCollapsed || !selection.rangeCount) {
+    return "";
+  }
+
+  const range = selection.getRangeAt(0);
+  const selectedText = selection.toString().replace(/\s+/g, " ").trim();
+  if (!selectedText || !captionText.contains(range.commonAncestorContainer)) {
+    return "";
+  }
+
+  return selectedText;
+}
+
+function setSelectedCaptionText(menu: Element, text: string) {
+  const selectedCaption = menu.querySelector(`.${SELECTED_CAPTION_CLASS}`) as HTMLElement | null;
+  const selectedCaptionText = menu.querySelector(`.${SELECTED_CAPTION_TEXT_CLASS}`);
+  const captionText = menu.querySelector(`.${CAPTION_TEXT_CLASS}`) as HTMLElement | null;
+
+  if (!selectedCaption || !selectedCaptionText || !captionText) {
+    return;
+  }
+
+  captionText.dataset.selectedText = text;
+  selectedCaptionText.textContent = text;
+  selectedCaption.hidden = !text;
+}
+
+export function getSelectedCaptionText(menu: Element) {
+  const captionText = menu.querySelector(`.${CAPTION_TEXT_CLASS}`) as HTMLElement | null;
+  if (!captionText) {
+    return "";
+  }
+
+  return captionText.dataset.selectedText?.trim() || getSelectionTextInside(captionText);
+}
+
+export function initializeCaptionSelection(menu: Element) {
+  const captionText = menu.querySelector(`.${CAPTION_TEXT_CLASS}`);
+  if (!captionText) {
+    return;
+  }
+
+  const captureSelection = () => {
+    const selectedText = getSelectionTextInside(captionText);
+    if (selectedText) {
+      setSelectedCaptionText(menu, selectedText);
+    }
+  };
+
+  captionText.addEventListener("mouseup", () => window.setTimeout(captureSelection));
+  captionText.addEventListener("touchend", () => window.setTimeout(captureSelection));
+  captionText.addEventListener("keyup", captureSelection);
 }
 
 function appendCaptionLine(captionText, text, index, visibleCount) {

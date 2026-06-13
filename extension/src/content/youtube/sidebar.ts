@@ -1,7 +1,16 @@
 import { handleCaptionAccessClick, loadCaptionsForCurrentVideo } from "./captions";
-import { CAPTION_ACTION_CLASS, CAPTION_STATUS_CLASS, CAPTION_TEXT_CLASS, MENU_ID, RESULT_CLASS } from "./constants";
+import {
+  CAPTION_ACTION_CLASS,
+  CAPTION_STATUS_CLASS,
+  CAPTION_TEXT_CLASS,
+  MENU_ID,
+  RESULT_CLASS,
+  SELECTED_CAPTION_CLASS,
+  SELECTED_CAPTION_TEXT_CLASS,
+} from "./constants";
 import { getVideoTitle, isFullscreen, isTheaterMode, isWatchPage } from "./page";
 import { handlePromptSubmit } from "./prompt";
+import { initializeCaptionSelection } from "./caption-ui";
 
 // Remove the custom side menu if it exists.
 export function removeSideMenu() {
@@ -18,6 +27,10 @@ function createSideMenu() {
     <section class="hello-world-youtube-captions" aria-live="polite">
       <p class="hello-world-youtube-label">Current caption</p>
       <p class="${CAPTION_TEXT_CLASS}"></p>
+      <div class="${SELECTED_CAPTION_CLASS}" hidden>
+        <p class="hello-world-youtube-label">Selected caption</p>
+        <p class="${SELECTED_CAPTION_TEXT_CLASS}"></p>
+      </div>
       <p class="${CAPTION_STATUS_CLASS}">Looking for captions...</p>
       <button class="${CAPTION_ACTION_CLASS}" type="button" hidden>Enable caption access</button>
     </section>
@@ -28,6 +41,7 @@ function createSideMenu() {
       <button type="submit">Submit</button>
     </form>
   `;
+  initializeCaptionSelection(menu);
   menu.querySelector(`.${CAPTION_ACTION_CLASS}`).addEventListener("click", handleCaptionAccessClick);
   menu.querySelector("form").addEventListener("submit", handlePromptSubmit);
   return menu;

@@ -7,12 +7,24 @@ from google.genai import errors
 MODEL = "gemini-3.1-flash-lite"
 
 
-async def process_prompt(prompt: str) -> dict:
+def build_prompt(prompt: str, highlighted_text: str | None) -> str:
+    highlighted_text = (highlighted_text or "").strip()
+    if not highlighted_text:
+        return prompt
+
+    return f"""User prompt:
+{prompt}
+
+Highlighted transcript:
+{highlighted_text}"""
+
+
+async def process_prompt(prompt: str, highlighted_text: str | None = None) -> dict:
     client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
     try:
         response = await client.aio.models.generate_content(
             model=MODEL,
-            contents=prompt,
+            contents=build_prompt(prompt, highlighted_text),
         )
     except errors.APIError as exc:
         return {

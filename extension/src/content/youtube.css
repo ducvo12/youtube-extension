@@ -44,6 +44,13 @@
   min-height: 40px;
   margin: 0 0 8px;
   line-height: 1.4;
+  user-select: text;
+}
+
+#hello-world-youtube-side-menu .hello-world-youtube-caption-text::selection,
+#hello-world-youtube-side-menu .hello-world-youtube-caption-line::selection {
+  color: #ffffff;
+  background: #065fd4;
 }
 
 #hello-world-youtube-side-menu .hello-world-youtube-caption-text[data-mode="word"] {
@@ -57,6 +64,27 @@
   font-weight: 500;
   line-height: 1.35;
   opacity: 0.55;
+  overflow-wrap: anywhere;
+  user-select: text;
+}
+
+#hello-world-youtube-side-menu .hello-world-youtube-selected-caption {
+  margin: 10px 0;
+  padding: 10px;
+  border-left: 3px solid #065fd4;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+#hello-world-youtube-side-menu .hello-world-youtube-selected-caption .hello-world-youtube-label {
+  margin-bottom: 4px;
+}
+
+#hello-world-youtube-side-menu .hello-world-youtube-selected-caption-text {
+  margin: 0;
+  color: #0f0f0f;
+  font-size: 13px;
+  line-height: 1.4;
   overflow-wrap: anywhere;
 }
 
@@ -174,6 +202,16 @@ html[dark] #hello-world-youtube-side-menu .hello-world-youtube-result,
 html[dark] #hello-world-youtube-side-menu .hello-world-youtube-captions,
 [dark] #hello-world-youtube-side-menu .hello-world-youtube-captions {
   background: #303030;
+}
+
+html[dark] #hello-world-youtube-side-menu .hello-world-youtube-selected-caption,
+[dark] #hello-world-youtube-side-menu .hello-world-youtube-selected-caption {
+  background: #181818;
+}
+
+html[dark] #hello-world-youtube-side-menu .hello-world-youtube-selected-caption-text,
+[dark] #hello-world-youtube-side-menu .hello-world-youtube-selected-caption-text {
+  color: #f1f1f1;
 }
 
 html[dark] #hello-world-youtube-side-menu .hello-world-youtube-caption-status,

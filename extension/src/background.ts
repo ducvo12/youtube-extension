@@ -10,7 +10,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     headers: {
       "Content-Type": "application/json"
     },
-    body: JSON.stringify({ prompt: message.prompt })
+      body: JSON.stringify({
+        prompt: message.prompt,
+        highlighted_text: message.highlightedText,
+      })
   })
     .then(async (response) => {
       const data = await response.json().catch(() => null);

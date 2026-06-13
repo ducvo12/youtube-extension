@@ -1,9 +1,9 @@
 import type { BackendResult } from "./types";
 
 // Send a prompt through the extension service worker so the page does not need CORS access.
-export function processPrompt(prompt: string): Promise<BackendResult> {
+export function processPrompt(prompt: string, highlightedText: string): Promise<BackendResult> {
   return new Promise((resolve, reject) => {
-    chrome.runtime.sendMessage({ type: "PROCESS_PROMPT", prompt }, (response) => {
+    chrome.runtime.sendMessage({ type: "PROCESS_PROMPT", prompt, highlightedText }, (response) => {
       // Chrome reports messaging failures through chrome.runtime.lastError instead of throwing.
       if (chrome.runtime.lastError) {
         reject(new Error(chrome.runtime.lastError.message));
