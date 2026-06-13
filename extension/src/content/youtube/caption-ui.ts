@@ -1,11 +1,8 @@
 import {
-  CAPTION_HISTORY_LINE_COUNT,
   CAPTION_STATUS_CLASS,
   CAPTION_TEXT_CLASS,
   RESULT_CLASS,
   CAPTION_ACTION_CLASS,
-  WORD_CAPTION_HISTORY_LINE_COUNT,
-  WORD_CAPTION_LINE_CHARACTER_COUNT,
 } from "./constants";
 
 export function setResult(menu, message, state = "") {
@@ -35,33 +32,6 @@ export function setCaptionActionVisible(menu, isVisible) {
   }
 }
 
-function getWordCaptionRows(captions, activeIndex) {
-  const rows = [""];
-  const firstIndex = Math.max(0, activeIndex - 120);
-
-  for (const caption of captions.slice(firstIndex, activeIndex + 1)) {
-    const word = caption.text.trim();
-    const currentRow = rows[rows.length - 1];
-    if (!word) {
-      continue;
-    }
-
-    if (!currentRow) {
-      rows[rows.length - 1] = word;
-      continue;
-    }
-
-    if (`${currentRow} ${word}`.length <= WORD_CAPTION_LINE_CHARACTER_COUNT) {
-      rows[rows.length - 1] = `${currentRow} ${word}`;
-      continue;
-    }
-
-    rows.push(word);
-  }
-
-  return rows.slice(-WORD_CAPTION_HISTORY_LINE_COUNT);
-}
-
 function appendCaptionLine(captionText, text, index, visibleCount) {
   const line = document.createElement("span");
   const distanceFromCurrent = visibleCount - index - 1;
@@ -74,34 +44,16 @@ function appendCaptionLine(captionText, text, index, visibleCount) {
   captionText.append(line);
 }
 
-export function setCaptionLines(menu, captions, activeIndex) {
+export function setCaptionRows(menu, rows) {
   const captionText = menu?.querySelector(`.${CAPTION_TEXT_CLASS}`);
   if (!captionText) {
     return;
   }
 
-  if (activeIndex === -1) {
-    return;
-  }
-
   captionText.replaceChildren();
+  captionText.dataset.mode = "word";
 
-  if (captions[activeIndex]?.isWord) {
-    captionText.dataset.mode = "word";
-    const visibleRows = getWordCaptionRows(captions, activeIndex);
-    for (const [index, row] of visibleRows.entries()) {
-      appendCaptionLine(captionText, row, index, visibleRows.length);
-    }
-    return;
-  }
-
-  captionText.dataset.mode = "caption";
-
-  const historyLineCount = captions[activeIndex]?.isWord ? WORD_CAPTION_HISTORY_LINE_COUNT : CAPTION_HISTORY_LINE_COUNT;
-  const startIndex = Math.max(0, activeIndex - historyLineCount + 1);
-  const visibleCaptions = captions.slice(startIndex, activeIndex + 1);
-
-  for (const [index, caption] of visibleCaptions.entries()) {
-    appendCaptionLine(captionText, caption.text, index, visibleCaptions.length);
+  for (const [index, row] of rows.entries()) {
+    appendCaptionLine(captionText, row, index, rows.length);
   }
 }

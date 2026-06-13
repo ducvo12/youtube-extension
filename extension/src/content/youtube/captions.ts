@@ -1,13 +1,14 @@
 import { MENU_ID } from "./constants";
-import { setCaptionActionVisible, setCaptionLines, setCaptionStatus, setCaptionText } from "./caption-ui";
+import { WORD_CAPTION_HISTORY_LINE_COUNT, WORD_CAPTION_LINE_CHARACTER_COUNT } from "./constants";
+import { setCaptionActionVisible, setCaptionRows, setCaptionStatus, setCaptionText } from "./caption-ui";
 import { getVideoId } from "./page";
-import type { Caption } from "./types";
 
 let captionRetryTimeout: number | null = null;
 let renderedCaptionObserver: MutationObserver | null = null;
 let observedVideoId: string | null = null;
 let renderedCaptionText = "";
-let liveCaptions: Caption[] = [];
+let committedCaptionRows: string[] = [];
+let currentCaptionRow = "";
 
 function clearCaptionRetry() {
   if (captionRetryTimeout) {
@@ -29,7 +30,8 @@ function scheduleCaptionRetry(menu: Element, delayMs = 1000) {
 
 function resetLiveCaptionState() {
   renderedCaptionText = "";
-  liveCaptions = [];
+  committedCaptionRows = [];
+  currentCaptionRow = "";
 }
 
 export function resetCaptions() {
@@ -138,6 +140,26 @@ function getNewRenderedWords(previousText: string, nextText: string) {
   return nextWords;
 }
 
+function appendWordToCaptionRows(word: string) {
+  const currentWithWord = currentCaptionRow ? `${currentCaptionRow} ${word}` : word;
+  if (currentWithWord.length <= WORD_CAPTION_LINE_CHARACTER_COUNT) {
+    currentCaptionRow = currentWithWord;
+    return;
+  }
+
+  if (currentCaptionRow) {
+    committedCaptionRows.push(currentCaptionRow);
+  }
+
+  currentCaptionRow = word;
+  committedCaptionRows = committedCaptionRows.slice(-40);
+}
+
+function getVisibleCaptionRows() {
+  const rows = currentCaptionRow ? [...committedCaptionRows, currentCaptionRow] : [...committedCaptionRows];
+  return rows.slice(-WORD_CAPTION_HISTORY_LINE_COUNT);
+}
+
 function appendRenderedWords(menu: Element) {
   const nextText = getRenderedCaptionText();
   if (!nextText || isYouTubeCaptionControlText(nextText)) {
@@ -152,19 +174,11 @@ function appendRenderedWords(menu: Element) {
     return;
   }
 
-  const now = performance.now() / 1000;
   for (const word of newWords) {
-    liveCaptions.push({
-      start: now,
-      end: now,
-      text: word,
-      isWord: true,
-    });
+    appendWordToCaptionRows(word);
   }
 
-  // Keep enough history for overlap detection and the four-line river without growing forever.
-  liveCaptions = liveCaptions.slice(-240);
-  setCaptionLines(menu, liveCaptions, liveCaptions.length - 1);
+  setCaptionRows(menu, getVisibleCaptionRows());
   setCaptionStatus(menu, "Reading YouTube's rendered captions.");
 }
 
