@@ -33,6 +33,38 @@
   background: #f8f8f8;
 }
 
+#hello-world-youtube-side-menu .hello-world-youtube-translation-setup,
+#hello-world-youtube-side-menu .hello-world-youtube-mode-summary {
+  margin: 0 0 14px;
+  padding: 12px;
+  border-radius: 10px;
+  background: #f8f8f8;
+}
+
+#hello-world-youtube-side-menu .hello-world-youtube-translation-setup {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+#hello-world-youtube-side-menu .hello-world-youtube-translation-setup[hidden],
+#hello-world-youtube-side-menu .hello-world-youtube-main[hidden] {
+  display: none;
+}
+
+#hello-world-youtube-side-menu .hello-world-youtube-helper,
+#hello-world-youtube-side-menu .hello-world-youtube-current-mode {
+  margin: 0;
+  color: #0f0f0f;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+#hello-world-youtube-side-menu .hello-world-youtube-current-mode {
+  margin-bottom: 10px;
+  font-weight: 600;
+}
+
 #hello-world-youtube-side-menu .hello-world-youtube-captions .hello-world-youtube-label {
   margin-bottom: 6px;
 }
@@ -114,6 +146,11 @@
 
 #hello-world-youtube-side-menu .hello-world-youtube-caption-action {
   margin-top: 10px;
+}
+
+#hello-world-youtube-side-menu .hello-world-youtube-reset-storage {
+  padding: 7px 11px;
+  font-size: 12px;
 }
 
 #hello-world-youtube-side-menu .hello-world-youtube-result {
@@ -202,6 +239,20 @@ html[dark] #hello-world-youtube-side-menu .hello-world-youtube-result,
 html[dark] #hello-world-youtube-side-menu .hello-world-youtube-captions,
 [dark] #hello-world-youtube-side-menu .hello-world-youtube-captions {
   background: #303030;
+}
+
+html[dark] #hello-world-youtube-side-menu .hello-world-youtube-translation-setup,
+html[dark] #hello-world-youtube-side-menu .hello-world-youtube-mode-summary,
+[dark] #hello-world-youtube-side-menu .hello-world-youtube-translation-setup,
+[dark] #hello-world-youtube-side-menu .hello-world-youtube-mode-summary {
+  background: #303030;
+}
+
+html[dark] #hello-world-youtube-side-menu .hello-world-youtube-helper,
+html[dark] #hello-world-youtube-side-menu .hello-world-youtube-current-mode,
+[dark] #hello-world-youtube-side-menu .hello-world-youtube-helper,
+[dark] #hello-world-youtube-side-menu .hello-world-youtube-current-mode {
+  color: #f1f1f1;
 }
 
 html[dark] #hello-world-youtube-side-menu .hello-world-youtube-selected-caption,

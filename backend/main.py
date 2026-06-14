@@ -16,6 +16,7 @@ app = FastAPI(title="AI API Server")
 class InputData(BaseModel):
     prompt: str
     highlighted_text: str | None = None
+    translation_mode: str | None = None
 
 
 @app.get("/")
@@ -30,4 +31,8 @@ def health():
 
 @app.post("/process")
 async def process(input_data: InputData):
-    return await process_prompt(input_data.prompt, input_data.highlighted_text)
+    return await process_prompt(
+        input_data.prompt,
+        input_data.highlighted_text,
+        input_data.translation_mode,
+    )

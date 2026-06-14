@@ -13,6 +13,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       body: JSON.stringify({
         prompt: message.prompt,
         highlighted_text: message.highlightedText,
+        translation_mode: message.translationMode,
       })
   })
     .then(async (response) => {

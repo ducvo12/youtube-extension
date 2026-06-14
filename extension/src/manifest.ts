@@ -13,6 +13,7 @@ const manifest: ManifestV3Export = {
     service_worker: "src/background.ts",
     type: "module",
   },
+  permissions: ["storage"],
   host_permissions: ["http://localhost:8000/*"],
   content_scripts: [
     {

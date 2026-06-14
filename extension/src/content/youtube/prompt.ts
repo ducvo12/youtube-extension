@@ -1,6 +1,7 @@
 import { processPrompt } from "./backend";
 import { MENU_ID } from "./constants";
 import { getSelectedCaptionText, setResult } from "./caption-ui";
+import { getTranslationMode } from "./settings";
 import type { BackendResult } from "./types";
 
 function formatBackendResult(data: BackendResult) {
@@ -21,17 +22,18 @@ export async function handlePromptSubmit(event) {
 
   const menu = event.currentTarget.closest(`#${MENU_ID}`);
   const input = menu.querySelector("textarea");
-  const button = menu.querySelector("button");
+  const button = event.currentTarget.querySelector('button[type="submit"]');
   const prompt = input.value.trim();
   const highlightedText = getSelectedCaptionText(menu);
-
-  if (!prompt) {
-    setResult(menu, "Enter a prompt first.", "error");
-    return;
-  }
+  const translationMode = await getTranslationMode();
 
   if (!highlightedText) {
     setResult(menu, "Highlight caption text first.", "error");
+    return;
+  }
+
+  if (!translationMode) {
+    setResult(menu, "Choose a translation mode first.", "error");
     return;
   }
 
@@ -39,7 +41,7 @@ export async function handlePromptSubmit(event) {
   setResult(menu, "Sending prompt...", "loading");
 
   try {
-    const data = await processPrompt(prompt, highlightedText);
+    const data = await processPrompt(prompt, highlightedText, translationMode);
     const isError = Boolean(data?.error);
     setResult(menu, formatBackendResult(data), isError ? "error" : "success");
   } catch (error) {
